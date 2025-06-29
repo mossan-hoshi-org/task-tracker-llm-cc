@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.responses import PlainTextResponse
 from typing import Optional
-from models import SessionCreate, SessionResponse, SummaryRequest, SummaryResponse
+from models import SessionCreate, SessionResponse, SummaryRequest, SummaryResponse, CategoryItem
 from session_service import SessionService
 from gemini_service import GeminiService
+from markdown_service import MarkdownService
 import os
 from dotenv import load_dotenv
 
@@ -39,6 +41,18 @@ def get_gemini_service():
 def reset_gemini_service():
     global _gemini_service_instance
     _gemini_service_instance = None
+
+_markdown_service_instance = None
+
+def get_markdown_service():
+    global _markdown_service_instance
+    if _markdown_service_instance is None:
+        _markdown_service_instance = MarkdownService()
+    return _markdown_service_instance
+
+def reset_markdown_service():
+    global _markdown_service_instance
+    _markdown_service_instance = None
 
 @app.get("/")
 async def read_root():
@@ -105,6 +119,42 @@ async def generate_summary(
         return summary
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Summary generation failed: {str(e)}")
+
+@app.post("/summary/markdown", response_class=PlainTextResponse)
+async def generate_markdown_from_summary(
+    request: SummaryRequest,
+    gemini_service: GeminiService = Depends(get_gemini_service),
+    markdown_service: MarkdownService = Depends(get_markdown_service)
+):
+    try:
+        # Gemini APIでカテゴリ分類
+        summary = await gemini_service.categorize_tasks(request.sessions)
+        
+        # Markdown生成
+        markdown_content = markdown_service.generate_summary_markdown(summary.categories)
+        
+        return markdown_content
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Markdown generation failed: {str(e)}")
+
+@app.get("/summary/markdown", response_class=PlainTextResponse)
+async def generate_markdown_from_categories(
+    categories: str,
+    markdown_service: MarkdownService = Depends(get_markdown_service)
+):
+    try:
+        # クエリパラメータからカテゴリデータをJSONで受け取る場合の実装
+        # 実際の使用ケースに応じて調整が必要
+        import json
+        category_data = json.loads(categories)
+        category_items = [
+            CategoryItem(**item) for item in category_data
+        ]
+        
+        markdown_content = markdown_service.generate_summary_markdown(category_items)
+        return markdown_content
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid category data: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

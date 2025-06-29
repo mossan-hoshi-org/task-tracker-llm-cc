@@ -97,7 +97,7 @@ cp backend/.env.example backend/.env
 | 6 | POST `/sessions/{id}/stop` API エンドポイント | セッション停止の API テスト | ✅ |
 | 7 | GET `/sessions/active` 現在セッション取得 API | リアルタイムデータ取得の API テスト | ✅ |
 | 8 | POST `/summary/generate` Gemini API 連携 | モック API でカテゴリ分類テスト | ✅ |
-| 9 | GET `/summary/markdown` Markdown 生成 API | Markdown 形式の文字列が正しい | 🔳 |
+| 9 | GET `/summary/markdown` Markdown 生成 API | Markdown 形式の文字列が正しい | ✅ |
 |10 | CORS 設定とエラーハンドリング | フロントエンドからのAPIアクセスが成功 | 🔳 |
 
 ### フロントエンド開発タスク
