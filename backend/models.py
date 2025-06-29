@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
@@ -73,3 +73,22 @@ class SessionResponse(BaseModel):
     model_config = ConfigDict(
         json_encoders={datetime: lambda v: v.isoformat()}
     )
+
+
+class TaskItem(BaseModel):
+    task_name: str = Field(..., description="作業名")
+    duration_ms: int = Field(..., description="作業時間（ミリ秒）")
+
+
+class CategoryItem(BaseModel):
+    category: str = Field(..., description="カテゴリ名")
+    subcategory: str = Field(..., description="小項目名")
+    total_duration_ms: int = Field(..., description="合計時間（ミリ秒）")
+
+
+class SummaryRequest(BaseModel):
+    sessions: List[TaskItem] = Field(..., description="分類対象のセッション一覧")
+
+
+class SummaryResponse(BaseModel):
+    categories: List[CategoryItem] = Field(..., description="カテゴリ別集計結果")

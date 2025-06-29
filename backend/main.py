@@ -1,7 +1,9 @@
 from fastapi import FastAPI, Depends, HTTPException
 from typing import Optional
-from models import SessionCreate, SessionResponse
+from models import SessionCreate, SessionResponse, SummaryRequest, SummaryResponse
 from session_service import SessionService
+from gemini_service import GeminiService
+import os
 
 app = FastAPI(
     title="Task Tracker API",
@@ -20,6 +22,19 @@ def get_session_service():
 def reset_session_service():
     global _session_service_instance
     _session_service_instance = None
+
+_gemini_service_instance = None
+
+def get_gemini_service():
+    global _gemini_service_instance
+    if _gemini_service_instance is None:
+        api_key = os.getenv("GEMINI_API_KEY")
+        _gemini_service_instance = GeminiService(api_key)
+    return _gemini_service_instance
+
+def reset_gemini_service():
+    global _gemini_service_instance
+    _gemini_service_instance = None
 
 @app.get("/")
 async def read_root():
@@ -75,6 +90,17 @@ async def stop_session(
             raise HTTPException(status_code=404, detail="Session not found")
         else:
             raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/summary/generate", response_model=SummaryResponse)
+async def generate_summary(
+    request: SummaryRequest,
+    gemini_service: GeminiService = Depends(get_gemini_service)
+):
+    try:
+        summary = await gemini_service.categorize_tasks(request.sessions)
+        return summary
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Summary generation failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
