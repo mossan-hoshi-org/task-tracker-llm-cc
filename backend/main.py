@@ -4,6 +4,9 @@ from models import SessionCreate, SessionResponse, SummaryRequest, SummaryRespon
 from session_service import SessionService
 from gemini_service import GeminiService
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(
     title="Task Tracker API",
@@ -29,7 +32,8 @@ def get_gemini_service():
     global _gemini_service_instance
     if _gemini_service_instance is None:
         api_key = os.getenv("GEMINI_API_KEY")
-        _gemini_service_instance = GeminiService(api_key)
+        model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        _gemini_service_instance = GeminiService(api_key, model_name)
     return _gemini_service_instance
 
 def reset_gemini_service():
@@ -104,4 +108,6 @@ async def generate_summary(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run(app, host=host, port=port)

@@ -28,6 +28,22 @@
 - 各機能の実装前にテストを書き、テストが通るまで実装を進める
 - フロントエンドは **Jest** と **React Testing Library** でテスト
 
+### 環境設定
+#### バックエンド環境変数設定
+1. `backend/.env.example` を `backend/.env` にコピー
+2. 必要なAPIキーを設定
+```bash
+cp backend/.env.example backend/.env
+# .envファイルを編集してGEMINI_API_KEYを設定
+```
+
+#### 必要な環境変数
+- `GEMINI_API_KEY`: Google AI Studio から取得したGemini APIキー
+- `GEMINI_MODEL`: 使用するGeminiモデル（デフォルト: gemini-2.5-flash）
+  - 利用可能: `gemini-2.5-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`
+- `HOST`: APIサーバーのホスト（デフォルト: 127.0.0.1）
+- `PORT`: APIサーバーのポート番号（デフォルト: 8000）
+
 ## 3. 操作フロー
 1. 作業名を入力し **▶ 計測開始** ボタンを押す → セッション開始。  
 2. 別の作業名を入力し再度 **▶** を押す → 直前セッションを自動停止し、次のセッション開始。  

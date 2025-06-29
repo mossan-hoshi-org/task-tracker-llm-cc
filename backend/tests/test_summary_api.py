@@ -1,4 +1,5 @@
 import pytest
+import os
 from fastapi.testclient import TestClient
 from main import app, reset_gemini_service
 
@@ -6,7 +7,9 @@ from main import app, reset_gemini_service
 class TestSummaryAPI:
     
     @pytest.fixture
-    def client(self):
+    def client(self, monkeypatch):
+        # テスト環境ではAPIキーを無効にしてモック機能を使用
+        monkeypatch.setenv("GEMINI_API_KEY", "")
         reset_gemini_service()
         return TestClient(app)
     

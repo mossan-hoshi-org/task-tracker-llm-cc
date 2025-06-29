@@ -6,9 +6,10 @@ from models import TaskItem, CategoryItem, SummaryResponse
 
 class GeminiService:
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None):
         self.api_key = api_key
-        self.base_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+        self.model_name = model_name or "gemini-2.5-flash"
+        self.base_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent"
     
     async def categorize_tasks(self, tasks: List[TaskItem]) -> SummaryResponse:
         if not self.api_key:
@@ -16,7 +17,7 @@ class GeminiService:
         
         prompt = self._build_categorization_prompt(tasks)
         
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 f"{self.base_url}?key={self.api_key}",
                 json={
@@ -85,10 +86,15 @@ class GeminiService:
             task_duration_map = {task.task_name: task.duration_ms for task in original_tasks}
             
             for cat_data in parsed_data.get("categories", []):
-                total_duration = sum(
-                    task_duration_map.get(task_name, 0)
-                    for task_name in cat_data.get("tasks", [])
-                )
+                total_duration = 0
+                for task_name_with_duration in cat_data.get("tasks", []):
+                    # Extract task name from "task_name (duration_ms)" format
+                    if " (" in task_name_with_duration:
+                        clean_task_name = task_name_with_duration.split(" (")[0]
+                    else:
+                        clean_task_name = task_name_with_duration
+                    
+                    total_duration += task_duration_map.get(clean_task_name, 0)
                 
                 categories.append(CategoryItem(
                     category=cat_data["category"],
