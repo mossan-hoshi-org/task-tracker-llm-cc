@@ -78,8 +78,8 @@
 | 3 | セッション管理サービスクラス (start/stop/pause) | ユニットテストで時間計測が正しい | ✅ |
 | 4 | POST `/sessions/start` API エンドポイント | API テストでセッション開始が成功 | ✅ |
 | 5 | PATCH `/sessions/{id}/pause` API エンドポイント | 一時停止・再開の API テスト | ✅ |
-| 6 | POST `/sessions/{id}/stop` API エンドポイント | セッション停止の API テスト | 🔳 |
-| 7 | GET `/sessions/active` 現在セッション取得 API | リアルタイムデータ取得の API テスト | 🔳 |
+| 6 | POST `/sessions/{id}/stop` API エンドポイント | セッション停止の API テスト | ✅ |
+| 7 | GET `/sessions/active` 現在セッション取得 API | リアルタイムデータ取得の API テスト | ✅ |
 | 8 | POST `/summary/generate` Gemini API 連携 | モック API でカテゴリ分類テスト | 🔳 |
 | 9 | GET `/summary/markdown` Markdown 生成 API | Markdown 形式の文字列が正しい | 🔳 |
 |10 | CORS 設定とエラーハンドリング | フロントエンドからのAPIアクセスが成功 | 🔳 |

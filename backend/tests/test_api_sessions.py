@@ -191,3 +191,80 @@ class TestSessionsAPI:
         assert pause_response.status_code == 400
         error_detail = pause_response.json()["detail"]
         assert "Cannot pause a stopped session" in error_detail
+    
+    def test_stop_session_success(self, client):
+        start_response = client.post(
+            "/sessions/start",
+            json={"task_name": "停止テスト"}
+        )
+        assert start_response.status_code == 201
+        session_id = start_response.json()["id"]
+        
+        stop_response = client.post(f"/sessions/{session_id}/stop")
+        assert stop_response.status_code == 200
+        stop_data = stop_response.json()
+        
+        assert stop_data["id"] == session_id
+        assert stop_data["status"] == SessionStatus.STOPPED
+        assert stop_data["end_time"] is not None
+        assert stop_data["total_duration"] >= 0
+    
+    def test_stop_paused_session(self, client):
+        start_response = client.post(
+            "/sessions/start",
+            json={"task_name": "一時停止後停止テスト"}
+        )
+        assert start_response.status_code == 201
+        session_id = start_response.json()["id"]
+        
+        pause_response = client.patch(f"/sessions/{session_id}/pause")
+        assert pause_response.status_code == 200
+        assert pause_response.json()["status"] == SessionStatus.PAUSED
+        
+        stop_response = client.post(f"/sessions/{session_id}/stop")
+        assert stop_response.status_code == 200
+        stop_data = stop_response.json()
+        
+        assert stop_data["id"] == session_id
+        assert stop_data["status"] == SessionStatus.STOPPED
+        assert stop_data["end_time"] is not None
+    
+    def test_stop_nonexistent_session(self, client):
+        response = client.post("/sessions/nonexistent-id/stop")
+        assert response.status_code == 404
+        error_detail = response.json()["detail"]
+        assert "Session not found" in error_detail
+    
+    def test_stop_already_stopped_session(self, client):
+        start_response = client.post(
+            "/sessions/start",
+            json={"task_name": "重複停止テスト"}
+        )
+        assert start_response.status_code == 201
+        session_id = start_response.json()["id"]
+        
+        first_stop = client.post(f"/sessions/{session_id}/stop")
+        assert first_stop.status_code == 200
+        
+        second_stop = client.post(f"/sessions/{session_id}/stop")
+        assert second_stop.status_code == 200
+        assert second_stop.json()["status"] == SessionStatus.STOPPED
+    
+    def test_stop_session_removes_active_session(self, client):
+        start_response = client.post(
+            "/sessions/start",
+            json={"task_name": "アクティブ削除テスト"}
+        )
+        assert start_response.status_code == 201
+        session_id = start_response.json()["id"]
+        
+        active_before = client.get("/sessions/active")
+        assert active_before.status_code == 200
+        assert active_before.json() is not None
+        
+        stop_response = client.post(f"/sessions/{session_id}/stop")
+        assert stop_response.status_code == 200
+        
+        active_after = client.get("/sessions/active")
+        assert active_after.status_code == 200
+        assert active_after.json() is None
