@@ -46,6 +46,21 @@ class SessionService:
         
         return session
     
+    def pause_session(self, session_id: str) -> Session:
+        session = self.get_session(session_id)
+        
+        if session.status == SessionStatus.STOPPED:
+            raise ValueError("Cannot pause a stopped session")
+        
+        current_time = datetime.now(timezone.utc)
+        
+        if session.status == SessionStatus.ACTIVE:
+            return self._pause_session(session, current_time)
+        elif session.status == SessionStatus.PAUSED:
+            return self._resume_session(session, current_time)
+        
+        return session
+    
     def stop_session(self, session_id: str) -> Session:
         return self._stop_session_internal(session_id)
     
