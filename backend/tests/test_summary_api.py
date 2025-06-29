@@ -19,7 +19,8 @@ class TestSummaryAPI:
                 {"task_name": "新機能開発", "duration_ms": 3600000},
                 {"task_name": "テストコード作成", "duration_ms": 1800000},
                 {"task_name": "チーム会議", "duration_ms": 900000}
-            ]
+            ],
+            "projects": ["プロジェクトA", "新機能開発"]
         }
         
         response = client.post("/summary/generate", json=request_data)
@@ -37,7 +38,10 @@ class TestSummaryAPI:
             assert category["total_duration_ms"] > 0
     
     def test_generate_summary_empty_sessions(self, client):
-        request_data = {"sessions": []}
+        request_data = {
+            "sessions": [],
+            "projects": []
+        }
         
         response = client.post("/summary/generate", json=request_data)
         assert response.status_code == 200
@@ -54,7 +58,8 @@ class TestSummaryAPI:
                 {"task_name": "フロントエンド画面作成", "duration_ms": 4500000},
                 {"task_name": "単体テスト作成", "duration_ms": 1800000},
                 {"task_name": "デバッグ作業", "duration_ms": 1200000}
-            ]
+            ],
+            "projects": ["ECサイト開発", "管理画面"]
         }
         
         response = client.post("/summary/generate", json=request_data)
@@ -70,13 +75,14 @@ class TestSummaryAPI:
     def test_generate_summary_categorization_logic(self, client):
         request_data = {
             "sessions": [
-                {"task_name": "コード実装", "duration_ms": 1000000},
-                {"task_name": "ユニットテスト", "duration_ms": 500000},
+                {"task_name": "プロジェクトA コード実装", "duration_ms": 1000000},
+                {"task_name": "プロジェクトA ユニットテスト", "duration_ms": 500000},
                 {"task_name": "ミーティング参加", "duration_ms": 600000},
                 {"task_name": "技術調査", "duration_ms": 800000},
                 {"task_name": "設計レビュー", "duration_ms": 400000},
                 {"task_name": "ドキュメント更新", "duration_ms": 300000}
-            ]
+            ],
+            "projects": ["プロジェクトA", "プロジェクトB"]
         }
         
         response = client.post("/summary/generate", json=request_data)
@@ -86,8 +92,8 @@ class TestSummaryAPI:
         categories = data["categories"]
         
         category_names = [cat["category"] for cat in categories]
-        assert "開発" in category_names
-        assert any(cat for cat in categories if "会議" in cat["category"] or "ミーティング" in cat["category"])
+        # プロジェクトベースの分類になったので、プロジェクトAまたはその他が含まれることを確認
+        assert "プロジェクトA" in category_names or "その他" in category_names
     
     def test_generate_summary_invalid_request(self, client):
         response = client.post("/summary/generate", json={})
@@ -101,7 +107,8 @@ class TestSummaryAPI:
             "sessions": [
                 {"task_name": "有効なタスク", "duration_ms": 1000},
                 {"duration_ms": 2000}
-            ]
+            ],
+            "projects": []
         }
         
         response = client.post("/summary/generate", json=request_data)
@@ -114,7 +121,8 @@ class TestSummaryAPI:
         request_data = {
             "sessions": [
                 {"task_name": "レスポンス形式テスト", "duration_ms": 1500000}
-            ]
+            ],
+            "projects": ["テストプロジェクト"]
         }
         
         response = client.post("/summary/generate", json=request_data)

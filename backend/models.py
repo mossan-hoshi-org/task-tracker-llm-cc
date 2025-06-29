@@ -88,6 +88,7 @@ class CategoryItem(BaseModel):
 
 class SummaryRequest(BaseModel):
     sessions: List[TaskItem] = Field(..., description="分類対象のセッション一覧")
+    projects: List[str] = Field(default=[], description="プロジェクト一覧（カテゴリ候補）")
 
 
 class SummaryResponse(BaseModel):

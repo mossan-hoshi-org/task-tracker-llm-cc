@@ -20,7 +20,8 @@ class TestMarkdownAPI:
                 {"task_name": "API開発", "duration_ms": 7200000},
                 {"task_name": "テスト作成", "duration_ms": 3600000},
                 {"task_name": "チーム会議", "duration_ms": 1800000}
-            ]
+            ],
+            "projects": ["プロジェクトA"]
         }
         
         response = client.post("/summary/markdown", json=request_data)
@@ -43,7 +44,10 @@ class TestMarkdownAPI:
         assert "|----------|--------|----------|------|" in markdown_content
     
     def test_generate_markdown_from_summary_empty(self, client):
-        request_data = {"sessions": []}
+        request_data = {
+            "sessions": [],
+            "projects": []
+        }
         
         response = client.post("/summary/markdown", json=request_data)
         assert response.status_code == 200
@@ -60,7 +64,8 @@ class TestMarkdownAPI:
                 {"task_name": "設計書作成", "duration_ms": 3600000},
                 {"task_name": "実装作業", "duration_ms": 10800000},
                 {"task_name": "単体テスト", "duration_ms": 7200000}
-            ]
+            ],
+            "projects": ["新機能開発"]
         }
         
         response = client.post("/summary/markdown", json=request_data)
@@ -69,7 +74,7 @@ class TestMarkdownAPI:
         markdown_content = response.text
         # 総時間の確認（27000000ms = 7.5時間）
         assert "7.5時間" in markdown_content
-        assert "開発" in markdown_content or "設計" in markdown_content
+        assert "新機能開発" in markdown_content or "その他" in markdown_content
     
     def test_generate_markdown_from_categories_get(self, client):
         categories_data = [
@@ -118,7 +123,8 @@ class TestMarkdownAPI:
                 {"task_name": "フロントエンド開発", "duration_ms": 10800000},
                 {"task_name": "バックエンドAPI実装", "duration_ms": 14400000},
                 {"task_name": "デバッグ作業", "duration_ms": 5400000}
-            ]
+            ],
+            "projects": ["Webアプリ開発"]
         }
         
         response = client.post("/summary/markdown", json=request_data)
@@ -145,7 +151,8 @@ class TestMarkdownAPI:
                 {"task_name": "短時間作業", "duration_ms": 900000},      # 15分
                 {"task_name": "長時間作業", "duration_ms": 7200000},     # 2時間
                 {"task_name": "中時間作業", "duration_ms": 3600000}      # 1時間
-            ]
+            ],
+            "projects": []
         }
         
         response = client.post("/summary/markdown", json=request_data)

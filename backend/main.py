@@ -115,7 +115,7 @@ async def generate_summary(
     gemini_service: GeminiService = Depends(get_gemini_service)
 ):
     try:
-        summary = await gemini_service.categorize_tasks(request.sessions)
+        summary = await gemini_service.categorize_tasks(request.sessions, request.projects)
         return summary
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Summary generation failed: {str(e)}")
@@ -128,7 +128,7 @@ async def generate_markdown_from_summary(
 ):
     try:
         # Gemini APIでカテゴリ分類
-        summary = await gemini_service.categorize_tasks(request.sessions)
+        summary = await gemini_service.categorize_tasks(request.sessions, request.projects)
         
         # Markdown生成
         markdown_content = markdown_service.generate_summary_markdown(summary.categories)

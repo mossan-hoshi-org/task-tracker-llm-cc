@@ -11,11 +11,11 @@ class GeminiService:
         self.model_name = model_name or "gemini-2.5-flash"
         self.base_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent"
     
-    async def categorize_tasks(self, tasks: List[TaskItem]) -> SummaryResponse:
+    async def categorize_tasks(self, tasks: List[TaskItem], projects: List[str] = None) -> SummaryResponse:
         if not self.api_key:
-            return self._mock_categorize_tasks(tasks)
+            return self._mock_categorize_tasks(tasks, projects or [])
         
-        prompt = self._build_categorization_prompt(tasks)
+        prompt = self._build_categorization_prompt(tasks, projects or [])
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
@@ -42,36 +42,45 @@ class GeminiService:
             
             return self._parse_gemini_response(generated_text, tasks)
     
-    def _build_categorization_prompt(self, tasks: List[TaskItem]) -> str:
+    def _build_categorization_prompt(self, tasks: List[TaskItem], projects: List[str]) -> str:
         tasks_text = "\n".join([
             f"- {task.task_name} ({task.duration_ms}ms)"
             for task in tasks
         ])
         
-        return f"""以下の作業リストを適切なカテゴリと小項目に分類してください。
-各作業を1つのカテゴリと小項目に割り当て、JSON形式で回答してください。
+        # プロジェクト一覧からカテゴリ候補を生成
+        if projects:
+            category_candidates = ', '.join(f'"{project}"' for project in projects) + ', "その他"'
+            project_instruction = f"カテゴリは以下のプロジェクトから選択してください: {category_candidates}"
+        else:
+            category_candidates = '"その他"'
+            project_instruction = "プロジェクトが指定されていないため、カテゴリは「その他」を使用してください。"
+        
+        return f"""以下の作業リストをプロジェクト（カテゴリ）と作業種類（小項目）に分類してください。
+各作業を1つのカテゴリ（プロジェクト）と小項目（作業種類）に割り当て、JSON形式で回答してください。
 
 作業リスト:
 {tasks_text}
+
+{project_instruction}
 
 回答形式:
 {{
   "categories": [
     {{
-      "category": "開発",
-      "subcategory": "フロントエンド",
+      "category": "プロジェクトA",
+      "subcategory": "開発",
       "tasks": ["作業名1", "作業名2"]
     }},
     {{
-      "category": "会議",
-      "subcategory": "設計レビュー", 
+      "category": "その他",
+      "subcategory": "会議", 
       "tasks": ["作業名3"]
     }}
   ]
 }}
 
-カテゴリの例: 開発、会議、学習、設計、テスト、デバッグ、ドキュメント作成、コードレビュー
-小項目の例: フロントエンド、バックエンド、API、データベース、UI/UX、インフラ
+小項目（作業種類）の例: 開発、会議、学習、設計、テスト、デバッグ、ドキュメント作成、コードレビュー、実装、調査、打ち合わせ
 """
     
     def _parse_gemini_response(self, response_text: str, original_tasks: List[TaskItem]) -> SummaryResponse:
@@ -105,32 +114,36 @@ class GeminiService:
             return SummaryResponse(categories=categories)
             
         except (json.JSONDecodeError, KeyError) as e:
-            return self._mock_categorize_tasks(original_tasks)
+            return self._mock_categorize_tasks(original_tasks, [])
     
-    def _mock_categorize_tasks(self, tasks: List[TaskItem]) -> SummaryResponse:
+    def _mock_categorize_tasks(self, tasks: List[TaskItem], projects: List[str]) -> SummaryResponse:
         categories = []
         
         for task in tasks:
-            if any(keyword in task.task_name.lower() for keyword in ['開発', 'コード', '実装', 'プログラム']):
-                category = "開発"
-                subcategory = "実装"
-            elif any(keyword in task.task_name.lower() for keyword in ['テスト', 'test', 'デバッグ']):
-                category = "開発" 
+            # プロジェクト（カテゴリ）の決定
+            task_lower = task.task_name.lower()
+            category = "その他"  # デフォルト
+            
+            # プロジェクト名がタスク名に含まれているかチェック
+            for project in projects:
+                if project.lower() in task_lower:
+                    category = project
+                    break
+            
+            # 作業種類（サブカテゴリ）の決定
+            if any(keyword in task_lower for keyword in ['開発', 'コード', '実装', 'プログラム']):
+                subcategory = "開発"
+            elif any(keyword in task_lower for keyword in ['テスト', 'test', 'デバッグ']):
                 subcategory = "テスト"
-            elif any(keyword in task.task_name.lower() for keyword in ['会議', 'ミーティング', '打ち合わせ']):
-                category = "会議"
-                subcategory = "チーム会議"
-            elif any(keyword in task.task_name.lower() for keyword in ['学習', '勉強', '調査', '研究']):
-                category = "学習"
-                subcategory = "技術調査"
-            elif any(keyword in task.task_name.lower() for keyword in ['設計', 'design', '仕様']):
-                category = "設計"
-                subcategory = "システム設計"
-            elif any(keyword in task.task_name.lower() for keyword in ['ドキュメント', '資料', '文書']):
-                category = "ドキュメント作成"
-                subcategory = "技術資料"
+            elif any(keyword in task_lower for keyword in ['会議', 'ミーティング', '打ち合わせ']):
+                subcategory = "会議"
+            elif any(keyword in task_lower for keyword in ['学習', '勉強', '調査', '研究']):
+                subcategory = "学習"
+            elif any(keyword in task_lower for keyword in ['設計', 'design', '仕様']):
+                subcategory = "設計"
+            elif any(keyword in task_lower for keyword in ['ドキュメント', '資料', '文書']):
+                subcategory = "ドキュメント作成"
             else:
-                category = "その他"
                 subcategory = "一般作業"
             
             existing_category = next(
