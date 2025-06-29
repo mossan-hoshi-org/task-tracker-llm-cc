@@ -5,33 +5,27 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 class SessionStatus(str, Enum):
-    """セッションのステータスを表すエナム"""
     ACTIVE = "active"
     PAUSED = "paused"
     STOPPED = "stopped"
 
 
 class SessionCreate(BaseModel):
-    """セッション作成時のリクエストモデル"""
     task_name: str = Field(..., min_length=1, description="作業名")
     
     @field_validator('task_name')
     @classmethod
     def validate_task_name(cls, v: str) -> str:
-        """タスク名のバリデーション"""
-        # 空白のみの文字列をチェック
         if not v.strip():
             raise ValueError("Task name cannot be empty or whitespace only")
         return v.strip()
 
 
 class SessionUpdate(BaseModel):
-    """セッション更新時のリクエストモデル"""
     status: Optional[SessionStatus] = None
 
 
 class Session(BaseModel):
-    """セッションのメインモデル"""
     id: str = Field(..., description="セッションID")
     task_name: str = Field(..., description="作業名")
     status: SessionStatus = Field(..., description="セッションステータス")
@@ -46,7 +40,6 @@ class Session(BaseModel):
 
 
 class SessionResponse(BaseModel):
-    """セッションのレスポンスモデル"""
     id: str
     task_name: str
     status: SessionStatus
@@ -58,17 +51,12 @@ class SessionResponse(BaseModel):
     
     @classmethod
     def from_session(cls, session: Session) -> "SessionResponse":
-        """Sessionモデルからレスポンスモデルを作成"""
         current_time = datetime.now(timezone.utc)
-        
-        # 経過時間の計算
         elapsed_seconds = session.total_duration
         
         if session.status == SessionStatus.ACTIVE:
-            # アクティブな場合は開始時刻からの経過時間を追加
             elapsed_seconds += int((current_time - session.start_time).total_seconds())
         elif session.status == SessionStatus.PAUSED and session.pause_time:
-            # 一時停止の場合は一時停止時刻までの経過時間を追加
             elapsed_seconds += int((session.pause_time - session.start_time).total_seconds())
         
         return cls(
